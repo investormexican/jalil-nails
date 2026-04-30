@@ -15,15 +15,12 @@ const MONTH_NAMES = [
 ]
 
 function getAvailableMonths() {
-  const now   = new Date()
-  const cur   = { year: now.getFullYear(), month: now.getMonth() + 1 }
-
-  const nextM = cur.month === 12 ? 1 : cur.month + 1
-  const nextY = cur.month === 12 ? cur.year + 1 : cur.year
-
-  const next2M = nextM === 12 ? 1  : nextM + 1
+  const now    = new Date()
+  const cur    = { year: now.getFullYear(), month: now.getMonth() + 1 }
+  const nextM  = cur.month === 12 ? 1 : cur.month + 1
+  const nextY  = cur.month === 12 ? cur.year + 1 : cur.year
+  const next2M = nextM === 12 ? 1 : nextM + 1
   const next2Y = nextM === 12 ? nextY + 1 : nextY
-
   return [cur, { year: nextY, month: nextM }, { year: next2Y, month: next2M }]
 }
 
@@ -37,26 +34,21 @@ function padDate(y: number, m: number, d: number) {
   return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`
 }
 
-// Filtra horas disponibles considerando solapamientos Y horas pasadas de hoy
 function filterAvailableHours(bookedHours: number[], dateKey: string): number[] {
-  const today   = new Date()
+  const today    = new Date()
   const todayKey = padDate(today.getFullYear(), today.getMonth() + 1, today.getDate())
   const isToday  = dateKey === todayKey
 
   return POSSIBLE_HOURS.filter(h => {
-    // Bloquear horas pasadas (con 30 min de margen) si es hoy
     if (isToday) {
       const slotTime       = new Date()
       slotTime.setHours(h, 0, 0, 0)
       const thirtyMinFromNow = new Date(today.getTime() + 30 * 60 * 1000)
       if (slotTime < thirtyMinFromNow) return false
     }
-
-    // Bloquear solapamientos con citas existentes (bloques de 2 hrs)
     for (const b of bookedHours) {
       if (h < b + APPT_DURATION && h + APPT_DURATION > b) return false
     }
-
     return true
   })
 }
@@ -124,8 +116,7 @@ export default function BookingPage() {
     const firstDay = new Date(year, month - 1, 1)
     const lastDate = new Date(year, month, 0).getDate()
     const offset   = (firstDay.getDay() + 6) % 7
-
-    const cells = []
+    const cells    = []
 
     for (let i = 0; i < offset; i++) {
       cells.push(<div key={`e-${i}`} />)
@@ -139,11 +130,9 @@ export default function BookingPage() {
       const isToday    = d.getTime() === today.getTime()
       const isSelected = selectedDate === key
 
-      const raw    = availability[key]
-      const isSun2 = raw === "sunday"
-      const booked = Array.isArray(raw) ? raw : []
-
-      // Para hoy, verificar si quedan horas disponibles considerando la hora actual
+      const raw      = availability[key]
+      const isSun2   = raw === "sunday"
+      const booked   = Array.isArray(raw) ? raw : []
       const hasSlots = !isSunday && !isSun2 && !isPast && (
         loadingCal ? true : filterAvailableHours(booked, key).length > 0
       )
@@ -205,16 +194,17 @@ export default function BookingPage() {
     setBooking(true)
     setMessage(null)
     try {
-      const res = await fetch("/api/create-preference", {
+      const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, phone, email, date: selectedDate, hour: selectedHour }),
       })
       const data = await res.json()
-      if (data.url) {
-        window.location.href = data.url
+      if (data.ok) {
+        setMessage({ type: "ok", text: "¡Cita confirmada! 💅" })
+        setTimeout(() => location.reload(), 2000)
       } else {
-        setMessage({ type: "err", text: data.error ?? "Error al iniciar el pago." })
+        setMessage({ type: "err", text: data.message })
         setBooking(false)
       }
     } catch {
@@ -276,12 +266,10 @@ export default function BookingPage() {
             background: "white", borderRadius: 20, overflow: "hidden",
             boxShadow: "0 4px 6px rgba(192,24,45,0.05), 0 12px 32px rgba(192,24,45,0.10)",
           }}>
-            {/* Franja superior */}
             <div style={{ height: 3, background: "linear-gradient(90deg, #9b0e20, #C0182D, #e11d48, #C0182D, #9b0e20)" }} />
 
             <div style={{ padding: "36px 20px 24px" }}>
 
-              {/* Título */}
               <h1 className="jn-display" style={{
                 textAlign: "center", fontSize: 26, fontWeight: 500,
                 color: "#1a0005", margin: "0 0 2px",
@@ -290,21 +278,10 @@ export default function BookingPage() {
               </h1>
               <p style={{
                 textAlign: "center", fontSize: 11, color: "#c4a0a8",
-                letterSpacing: "0.12em", margin: "0 0 4px",
+                letterSpacing: "0.12em", margin: "0 0 20px",
               }}>
                 JALIL NAILS · REYNOSA
               </p>
-
-              {/* Badge anticipo */}
-              <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
-                <span style={{
-                  fontSize: 11, fontWeight: 500, color: "#9b1c1c",
-                  background: "#fff1f2", border: "1px solid #fecdd3",
-                  borderRadius: 20, padding: "3px 12px", letterSpacing: "0.04em",
-                }}>
-                  Requiere anticipo de $200 MXN
-                </span>
-              </div>
 
               {/* Navegación mes */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
@@ -451,10 +428,9 @@ export default function BookingPage() {
                   boxShadow: isDisabled ? "none" : "0 3px 12px rgba(192,24,45,0.28)",
                 }}
               >
-                {booking ? "Redirigiendo…" : "Pagar anticipo ($200) y confirmar"}
+                {booking ? "Confirmando…" : "Confirmar cita"}
               </button>
 
-              {/* Mensaje */}
               {message && (
                 <div style={{
                   marginTop: 10, padding: "11px 14px", borderRadius: 12,
@@ -470,7 +446,6 @@ export default function BookingPage() {
             </div>
           </div>
 
-          {/* Footer */}
           <p className="jn-display" style={{
             textAlign: "center", fontSize: 11, color: "#c0657580",
             fontStyle: "italic", marginTop: 14, letterSpacing: "0.06em",
