@@ -19,9 +19,7 @@ function getAvailableMonths() {
   const cur    = { year: now.getFullYear(), month: now.getMonth() + 1 }
   const nextM  = cur.month === 12 ? 1 : cur.month + 1
   const nextY  = cur.month === 12 ? cur.year + 1 : cur.year
-  const next2M = nextM === 12 ? 1 : nextM + 1
-  const next2Y = nextM === 12 ? nextY + 1 : nextY
-  return [cur, { year: nextY, month: nextM }, { year: next2Y, month: next2M }]
+  return [cur, { year: nextY, month: nextM }]
 }
 
 function formatHour12(hour: number) {
