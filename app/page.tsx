@@ -194,7 +194,7 @@ export default function BookingPage() {
     setBooking(true)
     setMessage(null)
     try {
-      const res = await fetch(API_URL, {
+      const res = await fetch("/api/book", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, phone, email, date: selectedDate, hour: selectedHour }),
